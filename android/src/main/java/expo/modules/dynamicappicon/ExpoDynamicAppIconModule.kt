@@ -1,62 +1,75 @@
 package expo.modules.dynamicappicon
 
-import android.app.Activity;
-import android.app.Application;
+import android.content.ComponentName
 import android.content.Context
-import android.content.pm.PackageManager;
-import android.content.Intent;
-import android.content.ComponentName;
-
+import android.content.pm.PackageManager
+import android.util.Log
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 class ExpoDynamicAppIconModule : Module() {
-  override fun definition() = ModuleDefinition {
-    Name("ExpoDynamicAppIcon")
-
-    Function("setAppIcon") { name: String ->
-      try {
-        var newIcon:String = context.packageName + ".MainActivity" + name
-        var currentIcon:String = if(!SharedObject.icon.isEmpty()) SharedObject.icon else context.packageName + ".MainActivity"
-
-        SharedObject.packageName = context.packageName
-        SharedObject.pm = pm
-
-        pm.setComponentEnabledSetting(
-          ComponentName(context.packageName, newIcon),
-          PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-          PackageManager.DONT_KILL_APP
-        )
-
-        SharedObject.classesToKill.add(currentIcon)
-        SharedObject.icon = newIcon
-
-        return@Function name
-      } catch (e: Exception) {
-        return@Function false
-      }
-
-      return@Function false
+    companion object {
+        private const val TAG = "DynamicAppIcon"
     }
 
-    Function("getAppIcon") {
-      var componentClass:String = currentActivity.getComponentName().getClassName()
+    override fun definition() = ModuleDefinition {
+        Name("ExpoDynamicAppIcon")
 
-      var currentIcon:String = if(!SharedObject.icon.isEmpty()) SharedObject.icon else componentClass
-      
-      var currentIconName:String = currentIcon.split("MainActivity")[1]
+        Function("setAppIcon") { name: String ->
+            try {
+                val newIcon = "${context.packageName}.MainActivity$name"
+                val currentIcon = getCurrentIcon()
 
-      return@Function if(currentIconName.isEmpty()) "DEFAULT" else currentIconName
+                Log.d(TAG, "Current Icon: $currentIcon")
+                Log.d(TAG, "Requested New Icon: $newIcon")
+
+                if (newIcon == currentIcon) {
+                    Log.d(TAG, "Icon is already set. No change needed.")
+                    return@Function "Icon is already set"
+                }
+
+                // Schedule the icon change
+                SharedObject.packageName = context.packageName
+                SharedObject.pm = packageManager
+                SharedObject.icon = newIcon
+                SharedObject.classesToKill.add(currentIcon)
+
+                Log.d(TAG, "Icon change scheduled")
+                return@Function "Icon change scheduled"
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in setAppIcon", e)
+                return@Function "Error: ${e.message}"
+            }
+        }
+
+        Function("getAppIcon") {
+            val currentIcon = getCurrentIcon()
+            val iconName = currentIcon.split("MainActivity").getOrNull(1) ?: "Default"
+            return@Function iconName
+        }
     }
-  }
 
-  private val context: Context
-    get() = requireNotNull(appContext.reactContext) { "React Application Context is null" }
-  
-  private val currentActivity
-    get() = requireNotNull(appContext.activityProvider?.currentActivity)
+    private val context: Context
+        get() = requireNotNull(appContext.reactContext) { "React Application Context is null" }
 
-  private val pm
-    get() = requireNotNull(currentActivity.packageManager)
+    private val packageManager: PackageManager
+        get() = requireNotNull(context.packageManager) { "Package Manager is null" }
 
+    private fun getCurrentIcon(): String {
+        return try {
+            val activities = packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.GET_ACTIVITIES
+            ).activities
+
+            activities.firstOrNull {
+                packageManager.getComponentEnabledSetting(
+                    ComponentName(context.packageName, it.name)
+                ) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            }?.name ?: "${context.packageName}.MainActivity"
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting current icon", e)
+            "${context.packageName}.MainActivity"
+        }
+    }
 }

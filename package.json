@@ -1,7 +1,7 @@
 {
-  "name": "expo-dynamic-app-icon",
-  "version": "1.2.0",
-  "description": "Programmatically change the app icon in Expo.",
+  "name": "nixa-expo-dynamic-app-icon",
+  "version": "1.2.1",
+  "description": "Fork of expo-dynamic-app-icon with custom changes from Nixa team to fix gradle build",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -22,13 +22,16 @@
     "expo-dynamic-app-icon",
     "ExpoDynamicAppIcon"
   ],
-  "repository": "https://github.com/outsung/expo-dynamic-app-icon",
-  "bugs": {
-    "url": "https://github.com/outsung/expo-dynamic-app-icon/issues"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kouloughli-hemza/expo-dynamic-app-icon.git"
   },
-  "author": "Junseo Oh <insung9546@gmail.com> (https://github.com/outsung)",
+  "bugs": {
+    "url": "https://github.com/kouloughli-hemza/expo-dynamic-app-icon/issues"
+  },
+  "author": "Hemza kouloughli <hemza@nixa.ca>",
   "license": "MIT",
-  "homepage": "https://github.com/outsung/expo-dynamic-app-icon#readme",
+  "homepage": "https://github.com/kouloughli-hemza/expo-dynamic-app-icon#readme",
   "dependencies": {},
   "devDependencies": {
     "@expo/image-utils": "^0.3.23",
