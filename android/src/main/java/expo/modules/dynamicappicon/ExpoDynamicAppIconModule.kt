@@ -15,9 +15,11 @@ class ExpoDynamicAppIconModule : Module() {
     override fun definition() = ModuleDefinition {
         Name("ExpoDynamicAppIcon")
 
-        Function("setAppIcon") { name: String ->
+        Function("setAppIcon") { name: String, defaultIcon: String? ->
             try {
                 val newIcon = "${context.packageName}.MainActivity$name"
+                val defaultIconName = defaultIcon?.let { "${context.packageName}.MainActivity$it" }
+
                 val currentIcon = getCurrentIcon()
 
                 Log.d(TAG, "Current Icon: $currentIcon")
@@ -26,6 +28,22 @@ class ExpoDynamicAppIconModule : Module() {
                 if (newIcon == currentIcon) {
                     Log.d(TAG, "Icon is already set. No change needed.")
                     return@Function "Icon is already set"
+                }
+
+                // Validate if the new icon exists
+                if (!ComponentUtils.doesComponentExist(context, newIcon)) {
+                    Log.w(TAG, "Requested icon does not exist: $newIcon")
+
+                    // If a default icon is provided and exists, fall back to it
+                    if (defaultIconName != null && ComponentUtils.doesComponentExist(context, defaultIconName)) {
+                        Log.w(TAG, "Falling back to default icon: $defaultIconName")
+                        SharedObject.icon = defaultIconName
+                    } else {
+                        Log.e(TAG, "No valid icon to apply. Skipping icon change.")
+                        return@Function "Error: Requested and default icons do not exist"
+                    }
+                } else {
+                    SharedObject.icon = newIcon
                 }
 
                 // Schedule the icon change

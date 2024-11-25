@@ -33,7 +33,7 @@ class ExpoDynamicAppIconReactActivityLifecycleListener : ReactActivityLifecycleL
 
         handler.postDelayed({
             if (isPaused && isAppInBackground(activity)) {
-                Log.d(TAG, "App is in the background; applying icon change")
+                Log.d(TAG, "App is in the background; applying icon change Hi!!!!")
                 applyIconChange()
             } else {
                 Log.d(TAG, "App did not transition to background; skipping icon change")
@@ -72,36 +72,51 @@ class ExpoDynamicAppIconReactActivityLifecycleListener : ReactActivityLifecycleL
 
 
     private fun applyIconChange() {
+        Log.d(TAG, "Attempting to change the app icon")
         if (isChangingIcon) {
             Log.d(TAG, "Icon change already in progress; skipping")
             return
         }
-        isChangingIcon = true
-        SharedObject.classesToKill.forEach { cls ->
-            if (SharedObject.pm != null && cls != SharedObject.icon) {
-                try {
-                    Log.d(TAG, "Disabling component: $cls")
-                    SharedObject.pm?.setComponentEnabledSetting(
-                        ComponentName(SharedObject.packageName, cls),
-                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                        PackageManager.DONT_KILL_APP
-                    )
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error disabling component: $cls", e)
-                }
-            }
-        }
 
-        SharedObject.classesToKill.clear()
+        isChangingIcon = true
 
         SharedObject.icon.takeIf { it.isNotEmpty() }?.let { icon ->
+            val newComponent = ComponentName(SharedObject.packageName, icon)
+
+            // Check if the new component exists in the manifest
+            if (!doesComponentExist(newComponent)) {
+                Log.e(TAG, "Component not found in the manifest: $icon. Skipping icon change.")
+                isChangingIcon = false
+                return
+            }
+
+            // Proceed to disable other components if the new component exists
+            SharedObject.classesToKill.forEach { cls ->
+                if (cls != icon) {
+                    try {
+                        Log.d(TAG, "Disabling component: $cls")
+                        SharedObject.pm?.setComponentEnabledSetting(
+                            ComponentName(SharedObject.packageName, cls),
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                            PackageManager.DONT_KILL_APP
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error disabling component: $cls", e)
+                    }
+                }
+            }
+
+            SharedObject.classesToKill.clear()
+
+            // Enable the new component
             try {
-                Log.d(TAG, "Applying pending icon change to: $icon")
+                Log.d(TAG, "Enabling new component: $icon")
                 SharedObject.pm?.setComponentEnabledSetting(
-                    ComponentName(SharedObject.packageName, icon),
+                    newComponent,
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                     PackageManager.DONT_KILL_APP
                 )
+                Log.d(TAG, "Successfully changed app icon to: $icon")
             } catch (e: Exception) {
                 Log.e(TAG, "Error enabling component: $icon", e)
             } finally {
@@ -109,4 +124,24 @@ class ExpoDynamicAppIconReactActivityLifecycleListener : ReactActivityLifecycleL
             }
         }
     }
+
+    /**
+     * Check if a component exists in the manifest (including disabled ones).
+     */
+    private fun doesComponentExist(componentName: ComponentName): Boolean {
+        return try {
+            val packageInfo = SharedObject.pm?.getPackageInfo(
+                SharedObject.packageName,
+                PackageManager.GET_ACTIVITIES or PackageManager.GET_DISABLED_COMPONENTS
+            )
+
+            val activityExists = packageInfo?.activities?.any { it.name == componentName.className } == true
+            Log.d(TAG, "Component exists: ${componentName.className} -> $activityExists")
+            activityExists
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking component existence", e)
+            false
+        }
+    }
+
 }
