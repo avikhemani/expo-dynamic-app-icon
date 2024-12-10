@@ -1,6 +1,6 @@
 {
   "name": "nixa-expo-dynamic-app-icon",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Fork of expo-dynamic-app-icon with custom changes from Nixa team to fix gradle build",
   "main": "build/index.js",
   "types": "build/index.d.ts",
