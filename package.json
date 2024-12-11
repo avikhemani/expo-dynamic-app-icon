@@ -1,7 +1,7 @@
 {
   "name": "nixa-expo-dynamic-app-icon",
-  "version": "1.2.5",
-  "description": "Fork of expo-dynamic-app-icon with custom changes from Nixa team to fix gradle build",
+  "version": "1.2.6",
+  "description": "Expo dynamic app icon, Change app icon on IOS And Android with a single line of code",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {

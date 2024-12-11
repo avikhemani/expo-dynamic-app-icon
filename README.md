@@ -72,7 +72,7 @@ import { setAppIcon } from "nixa-expo-dynamic-app-icon";
 
 ...
 
-setAppIcon("red") // set icon 'assets/icon1.png'
+setAppIcon("red", "default_icon_name") // set icon 'assets/icon1.png'
 ```
 
 ## Use `getAppIcon`
