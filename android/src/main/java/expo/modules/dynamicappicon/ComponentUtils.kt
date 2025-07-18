@@ -18,8 +18,7 @@ object ComponentUtils {
                 context.packageName,
                 PackageManager.GET_ACTIVITIES or PackageManager.GET_DISABLED_COMPONENTS
             )
-
-            val activityExists = packageInfo.activities.any { it.name == componentName }
+            val activityExists = packageInfo.activities?.any { it.name == componentName } ?: false
             Log.d(TAG, "Component exists: $componentName -> $activityExists")
             activityExists
         } catch (e: Exception) {

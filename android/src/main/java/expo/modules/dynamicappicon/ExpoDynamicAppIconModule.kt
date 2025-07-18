@@ -76,9 +76,9 @@ class ExpoDynamicAppIconModule : Module() {
     private fun getCurrentIcon(): String {
         return try {
             val activities = packageManager.getPackageInfo(
-                context.packageName,
-                PackageManager.GET_ACTIVITIES
-            ).activities
+                        context.packageName,
+                        PackageManager.GET_ACTIVITIES
+                    ).activities ?: return "${context.packageName}.MainActivity"
 
             activities.firstOrNull {
                 packageManager.getComponentEnabledSetting(
