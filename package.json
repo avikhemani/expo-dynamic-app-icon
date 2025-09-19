@@ -5,7 +5,9 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "expo": {
-    "plugin": "plugin/build/withDynamicIcon.js"
+    "plugins": [
+      "./plugin/build/withDynamicIcon.js"
+    ]
   },
   "scripts": {
     "build": "tsc --build",
