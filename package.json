@@ -1,11 +1,12 @@
 {
-  "name": "expo-dynamic-app-icon",
+  "name": "kmoney-expo-dynamic-app-icon",
   "version": "1.0.0",
   "description": "Fork of expo-dynamic-app-icon with Android adaptive icon support",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
-    "build": "tsc --build"
+    "build": "tsc --build",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "react-native",
@@ -13,7 +14,8 @@
     "expo-dynamic-app-icon",
     "adaptive-icon",
     "android",
-    "ios"
+    "ios",
+    "config-plugin"
   ],
   "repository": {
     "type": "git",
@@ -41,6 +43,11 @@
   "files": [
     "build",
     "plugin",
-    "src"
-  ]
+    "src",
+    "README.md",
+    "package.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }
