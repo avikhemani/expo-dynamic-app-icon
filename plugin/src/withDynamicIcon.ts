@@ -228,7 +228,7 @@ const withIconAndroidImages: ConfigPlugin<Props> = (config, { icons }) => {
             const fgBuffer = await fs.promises.readFile(
               path.resolve(config.modRequest.projectRoot, foregroundImage)
             );
-            await fs.promises.writeFile(foregroundDest, fgBuffer);
+            await fs.promises.writeFile(foregroundDest, fgBuffer as any);
 
             // 2. Background (color or image)
             let backgroundRef = "";
@@ -252,7 +252,7 @@ const withIconAndroidImages: ConfigPlugin<Props> = (config, { icons }) => {
               const bgBuffer = await fs.promises.readFile(
                 path.resolve(config.modRequest.projectRoot, backgroundImage)
               );
-              await fs.promises.writeFile(backgroundDest, bgBuffer);
+              await fs.promises.writeFile(backgroundDest, bgBuffer as any);
 
               backgroundRef = `@mipmap/ic_launcher_${name}_background`;
             }
@@ -401,10 +401,8 @@ const withIconInfoPlist: ConfigPlugin<Props> = (config, { icons }) => {
         config.modResults[key] = {};
       }
 
-      // @ts-expect-error
       config.modResults[key].CFBundleAlternateIcons = altIcons;
 
-      // @ts-expect-error
       config.modResults[key].CFBundlePrimaryIcon = {
         CFBundleIconFiles: ["AppIcon"],
       };
@@ -469,7 +467,7 @@ async function createIconsAsync(
         }
       );
 
-      await fs.promises.writeFile(outputPath, source);
+      await fs.promises.writeFile(outputPath, source as any);
     }
   });
 }
@@ -486,7 +484,7 @@ async function iterateIconsAsync(
   for (let i = 0; i < entries.length; i++) {
     const [key, val] = entries[i];
 
-    await callback(key, val, i);
+    await callback(key, val as any, i);
   }
 }
 
