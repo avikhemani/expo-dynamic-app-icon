@@ -1,1 +1,1 @@
-module.exports = require("./plugin/build/withDynamicIcon");
+module.exports = require("./plugin/build/withDynamicIcon").default;
