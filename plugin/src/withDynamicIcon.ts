@@ -10,8 +10,8 @@ import {
   AndroidManifest,
 } from "@expo/config-plugins";
 import { generateImageAsync } from "@expo/image-utils";
-import fs from "fs";
-import path from "path";
+import * as fs from "fs";
+import * as path from "path";
 // @ts-ignore
 import pbxFile from "xcode/lib/pbxFile";
 
@@ -21,14 +21,16 @@ const {
 } = AndroidConfig.Manifest;
 
 const androidFolderPath = ["app", "src", "main", "res"];
+
 const androidFolderNames = [
-  "mipmap-hdpi",
-  "mipmap-mdpi",
-  "mipmap-xhdpi",
-  "mipmap-xxhdpi",
-  "mipmap-xxxhdpi",
+  "mipmap-mdpi",   // 108 px
+  "mipmap-hdpi",   // 162 px
+  "mipmap-xhdpi",  // 216 px
+  "mipmap-xxhdpi", // 324 px
+  "mipmap-xxxhdpi" // 432 px
 ];
-const androidSize = [162, 108, 216, 324, 432];
+
+const androidSize = [108, 162, 216, 324, 432];
 
 const iosFolderName = "DynamicAppIcons";
 const iosSize = 60;
@@ -218,55 +220,85 @@ const withIconAndroidImages: ConfigPlugin<Props> = (config, { icons }) => {
       };
 
       const addAdaptiveIconRes = async () => {
+        // 1) XML remains in anydpi-v26
         const mipmapAnyDpiPath = path.join(androidResPath, "mipmap-anydpi-v26");
         await fs.promises.mkdir(mipmapAnyDpiPath, { recursive: true });
 
+        // 2) For each icon
         for (const [name, { foregroundImage, backgroundColor, backgroundImage }] of Object.entries(icons)) {
-          if (foregroundImage && (backgroundColor || backgroundImage)) {
-            // 1. Copy foreground image
-            const foregroundDest = path.join(mipmapAnyDpiPath, `ic_launcher_${name}_foreground.png`);
-            const fgBuffer = await fs.promises.readFile(
-              path.resolve(config.modRequest.projectRoot, foregroundImage)
-            );
-            await fs.promises.writeFile(foregroundDest, fgBuffer as any);
+          if (!(foregroundImage && (backgroundColor || backgroundImage))) continue;
 
-            // 2. Background (color or image)
-            let backgroundRef = "";
-            if (backgroundColor) {
-              const colorsPath = path.join(androidResPath, "values", "colors.xml");
-              let colorsXml = fs.existsSync(colorsPath)
-                ? await fs.promises.readFile(colorsPath, "utf8")
-                : "<resources>\n</resources>";
+          // 2a) Write foreground/background PNGs to EACH density
+          for (let i = 0; i < androidFolderNames.length; i++) {
+            const dpiFolder = androidFolderNames[i];          // e.g. mipmap-xxhdpi
+            const size = androidSize[i];                      // 108|162|216|324|432
+            const dpiPath = path.join(androidResPath, dpiFolder);
+            await fs.promises.mkdir(dpiPath, { recursive: true });
 
-              if (!colorsXml.includes(`ic_launcher_${name}_background`)) {
-                colorsXml = colorsXml.replace(
-                  "</resources>",
-                  `    <color name="ic_launcher_${name}_background">${backgroundColor}</color>\n</resources>`
-                );
-                await fs.promises.writeFile(colorsPath, colorsXml);
+            // Foreground
+            const { source: fgSource } = await generateImageAsync(
+              { projectRoot: config.modRequest.projectRoot, cacheType: "react-native-dynamic-app-icon" },
+              {
+                name: `ic_launcher_${name}_foreground.png`,
+                src: foregroundImage,
+                // Foreground should usually "contain" to respect safe area;
+                // switch to "cover" if your art is full-bleed and already padded
+                resizeMode: "contain",
+                width: size,
+                height: size,
+                backgroundColor: "transparent",
               }
+            );
+            await fs.promises.writeFile(path.join(dpiPath, `ic_launcher_${name}_foreground.png`), fgSource as any);
 
-              backgroundRef = `@color/ic_launcher_${name}_background`;
-            } else if (backgroundImage) {
-              const backgroundDest = path.join(mipmapAnyDpiPath, `ic_launcher_${name}_background.png`);
-              const bgBuffer = await fs.promises.readFile(
-                path.resolve(config.modRequest.projectRoot, backgroundImage)
+            // Background image (if provided)
+            if (backgroundImage) {
+              const { source: bgSource } = await generateImageAsync(
+                { projectRoot: config.modRequest.projectRoot, cacheType: "react-native-dynamic-app-icon" },
+                {
+                  name: `ic_launcher_${name}_background.png`,
+                  src: backgroundImage,
+                  // Background should typically fill
+                  resizeMode: "cover",
+                  width: size,
+                  height: size,
+                  backgroundColor: "transparent",
+                }
               );
-              await fs.promises.writeFile(backgroundDest, bgBuffer as any);
-
-              backgroundRef = `@mipmap/ic_launcher_${name}_background`;
+              await fs.promises.writeFile(path.join(dpiPath, `ic_launcher_${name}_background.png`), bgSource as any);
             }
-
-            // 3. Create adaptive icon XML
-            const xmlPath = path.join(mipmapAnyDpiPath, `ic_launcher_${name}.xml`);
-            const xml = `
-      <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-        <background android:drawable="${backgroundRef}"/>
-        <foreground android:drawable="@mipmap/ic_launcher_${name}_foreground"/>
-      </adaptive-icon>
-            `;
-            await fs.promises.writeFile(xmlPath, xml);
           }
+
+          // 2b) If background is a color, ensure values/colors.xml has it
+          let backgroundRef = "";
+          if (backgroundColor) {
+            const colorsPath = path.join(androidResPath, "values", "colors.xml");
+            let colorsXml = fs.existsSync(colorsPath)
+              ? await fs.promises.readFile(colorsPath, "utf8")
+              : "<resources>\n</resources>";
+
+            if (!colorsXml.includes(`ic_launcher_${name}_background`)) {
+              colorsXml = colorsXml.replace(
+                "</resources>",
+                `    <color name="ic_launcher_${name}_background">${backgroundColor}</color>\n</resources>`
+              );
+              await fs.promises.writeFile(colorsPath, colorsXml);
+            }
+            backgroundRef = `@color/ic_launcher_${name}_background`;
+          } else {
+            // backgroundImage case references @mipmap (we wrote per-density files above)
+            backgroundRef = `@mipmap/ic_launcher_${name}_background`;
+          }
+
+          // 2c) Write the adaptive icon XML (only once) in anydpi-v26
+          const xmlPath = path.join(mipmapAnyDpiPath, `ic_launcher_${name}.xml`);
+          const xml = `
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="${backgroundRef}"/>
+  <foreground android:drawable="@mipmap/ic_launcher_${name}_foreground"/>
+</adaptive-icon>
+`.trim();
+          await fs.promises.writeFile(xmlPath, xml);
         }
       };
 
