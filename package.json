@@ -1,6 +1,6 @@
 {
   "name": "kmoney-expo-dynamic-app-icon",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Fork of expo-dynamic-app-icon with Android adaptive icon support",
   "main": "build/index.js",
   "types": "build/index.d.ts",
