@@ -1,48 +1,46 @@
 {
-  "name": "nixa-expo-dynamic-app-icon",
-  "version": "1.2.6",
-  "description": "Expo dynamic app icon, Change app icon on IOS And Android with a single line of code",
+  "name": "expo-dynamic-app-icon",
+  "version": "1.0.0",
+  "description": "Fork of expo-dynamic-app-icon with Android adaptive icon support",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
-    "build": "expo-module build",
-    "build:plugin": "tsc --build ./plugin",
-    "clean": "expo-module clean",
-    "lint": "expo-module lint",
-    "test": "expo-module test",
-    "prepare": "expo-module prepare",
-    "prepublishOnly": "expo-module prepublishOnly",
-    "expo-module": "expo-module",
-    "open:ios": "open -a \"Xcode\" example/ios",
-    "open:android": "open -a \"Android Studio\" example/android"
+    "build": "tsc --build"
   },
   "keywords": [
     "react-native",
     "expo",
     "expo-dynamic-app-icon",
-    "ExpoDynamicAppIcon"
+    "adaptive-icon",
+    "android",
+    "ios"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kouloughli-hemza/expo-dynamic-app-icon.git"
+    "url": "git+https://github.com/avikhemani/expo-dynamic-app-icon.git"
   },
   "bugs": {
-    "url": "https://github.com/kouloughli-hemza/expo-dynamic-app-icon/issues"
+    "url": "https://github.com/avikhemani/expo-dynamic-app-icon/issues"
   },
-  "author": "Hemza kouloughli <hemza@nixa.ca>",
+  "author": "Avi Khemani",
   "license": "MIT",
-  "homepage": "https://github.com/kouloughli-hemza/expo-dynamic-app-icon#readme",
-  "dependencies": {},
+  "homepage": "https://github.com/avikhemani/expo-dynamic-app-icon#readme",
+  "dependencies": {
+    "@expo/config-plugins": "^9.0.0",
+    "@expo/image-utils": "^0.4.0",
+    "xcode": "^3.0.1"
+  },
   "devDependencies": {
-    "@expo/image-utils": "^0.3.23",
-    "@types/react": "^18.0.25",
-    "@types/react-native": "^0.70.6",
-    "expo-module-scripts": "^3.0.3",
-    "expo-modules-core": "^1.0.3"
+    "typescript": "^5.3.3"
   },
   "peerDependencies": {
     "expo": ">=49",
     "react": "*",
     "react-native": "*"
-  }
+  },
+  "files": [
+    "build",
+    "plugin",
+    "src"
+  ]
 }
