@@ -202,7 +202,7 @@ const withIconAndroidImages: ConfigPlugin<Props> = (config, { icons }) => {
             );
             await fs.promises.writeFile(
               path.join(outputPath, fileName),
-              source
+              source as any
             );
           }
         }
