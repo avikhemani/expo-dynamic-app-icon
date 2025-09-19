@@ -38,11 +38,14 @@ const iosScales = [2, 3, ipad152Scale, ipad167Scale];
 
 type Platform = "ios" | "android";
 
-type Icon = { 
-  image: string; 
-  prerendered?: boolean, 
-  platforms?: Platform[]
-}
+type Icon = {
+  image?: string;              // iOS-only (or legacy Android flat)
+  foregroundImage?: string;    // Android adaptive foreground
+  backgroundColor?: string;    // Android adaptive background color
+  backgroundImage?: string;    // Android adaptive background image
+  prerendered?: boolean;
+  platforms?: Platform[];
+};
 
 type IconSet = Record<string, Icon>;
 
@@ -95,7 +98,7 @@ const withDynamicIcon: ConfigPlugin<string[] | IconSet | void> = (
   if (androidIconsLength > 0) {
     config = withIconAndroidManifest(config, { icons: androidIcons });
     config = withIconAndroidImages(config, { icons: androidIcons });
-  } 
+  }
 
   return config;
 };
@@ -117,7 +120,7 @@ const withIconAndroidManifest: ConfigPlugin<Props> = (config, { icons }) => {
             "android:name": `${iconNamePrefix}${iconName}`,
             "android:enabled": "false",
             "android:exported": "true",
-            "android:icon": `@mipmap/${iconName}`,
+            "android:icon": `@mipmap/ic_launcher_${iconName}`,
             "android:targetActivity": ".MainActivity",
           },
           "intent-filter": [...mainActivity["intent-filter"] || [
@@ -214,8 +217,62 @@ const withIconAndroidImages: ConfigPlugin<Props> = (config, { icons }) => {
         // }
       };
 
+      const addAdaptiveIconRes = async () => {
+        const mipmapAnyDpiPath = path.join(androidResPath, "mipmap-anydpi-v26");
+        await fs.promises.mkdir(mipmapAnyDpiPath, { recursive: true });
+
+        for (const [name, { foregroundImage, backgroundColor, backgroundImage }] of Object.entries(icons)) {
+          if (foregroundImage && (backgroundColor || backgroundImage)) {
+            // 1. Copy foreground image
+            const foregroundDest = path.join(mipmapAnyDpiPath, `ic_launcher_${name}_foreground.png`);
+            const fgBuffer = await fs.promises.readFile(
+              path.resolve(config.modRequest.projectRoot, foregroundImage)
+            );
+            await fs.promises.writeFile(foregroundDest, fgBuffer);
+
+            // 2. Background (color or image)
+            let backgroundRef = "";
+            if (backgroundColor) {
+              const colorsPath = path.join(androidResPath, "values", "colors.xml");
+              let colorsXml = fs.existsSync(colorsPath)
+                ? await fs.promises.readFile(colorsPath, "utf8")
+                : "<resources>\n</resources>";
+
+              if (!colorsXml.includes(`ic_launcher_${name}_background`)) {
+                colorsXml = colorsXml.replace(
+                  "</resources>",
+                  `    <color name="ic_launcher_${name}_background">${backgroundColor}</color>\n</resources>`
+                );
+                await fs.promises.writeFile(colorsPath, colorsXml);
+              }
+
+              backgroundRef = `@color/ic_launcher_${name}_background`;
+            } else if (backgroundImage) {
+              const backgroundDest = path.join(mipmapAnyDpiPath, `ic_launcher_${name}_background.png`);
+              const bgBuffer = await fs.promises.readFile(
+                path.resolve(config.modRequest.projectRoot, backgroundImage)
+              );
+              await fs.promises.writeFile(backgroundDest, bgBuffer);
+
+              backgroundRef = `@mipmap/ic_launcher_${name}_background`;
+            }
+
+            // 3. Create adaptive icon XML
+            const xmlPath = path.join(mipmapAnyDpiPath, `ic_launcher_${name}.xml`);
+            const xml = `
+      <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+        <background android:drawable="${backgroundRef}"/>
+        <foreground android:drawable="@mipmap/ic_launcher_${name}_foreground"/>
+      </adaptive-icon>
+            `;
+            await fs.promises.writeFile(xmlPath, xml);
+          }
+        }
+      };
+
       await removeIconRes();
       await addIconRes();
+      await addAdaptiveIconRes();
 
       return config;
     },
@@ -224,14 +281,14 @@ const withIconAndroidImages: ConfigPlugin<Props> = (config, { icons }) => {
 
 // for ios
 function getIconName(name: string, size: number, scale?: number) {
-  
+
   const fileName = `${name}-Icon-$${size}x${size}`;
 
   if (scale != null) {
-    if(scale == ipad152Scale){
+    if (scale == ipad152Scale) {
       return `${fileName}@2x~ipad.png`;
     }
-    if(scale == ipad167Scale){
+    if (scale == ipad167Scale) {
       return `${fileName}@3x~ipad.png`;
     }
     return `${fileName}@${scale}x.png`;
